@@ -1,0 +1,68 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  ruby-versions:
+    uses: ruby/actions/.github/workflows/ruby_versions.yml@master
+    with:
+      engine: cruby-truffleruby
+      min_version: 2.6
+  test:
+    needs: ruby-versions
+    name: >-
+      ${{ matrix.os }} ${{ matrix.ruby }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # ubuntu-22.04 uses OpenSSL 3.0, ubuntu-20.04 uses OpenSSL 1.1.1
+        os: [ ubuntu-22.04, ubuntu-20.04, macos-latest, windows-latest ]
+        ruby: ${{ fromJson(needs.ruby-versions.outputs.versions) }}
+        exclude:
+          # uses non-standard MSYS2 OpenSSL 3 package
+          - { os: windows-latest, ruby: head }
+          - { os: windows-latest, ruby: truffleruby }
+          - { os: windows-latest, ruby: truffleruby-head }
+          - { os: macos-latest,   ruby: truffleruby }
+          - { os: ubuntu-20.04,   ruby: truffleruby }
+        include:
+          - { os: windows-latest, ruby: ucrt }
+          - { os: windows-latest, ruby: mswin }
+
+    steps:
+      - name: repo checkout
+        uses: actions/checkout@v3
+
+      - name: load ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: gem env
+        run:  gem env
+
+      # It doesn't work on Windows cases.
+      - name: enable mkmf verbose
+        run: ci/enable_mkmf_verbose.sh
+
+  test-openssls:
+    name: >-
+      ${{ matrix.openssl }} ${{ matrix.name_extra || '' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        ruby: [ "3.0" ]
+    steps:
+      - name: repo checkout
+        uses: actions/checkout@v3
+
+      - name: load ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: gem env
+        run:  gem env
