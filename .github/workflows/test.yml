@@ -45,6 +45,7 @@ jobs:
       # It doesn't work on Windows cases.
       - name: enable mkmf verbose
         run: ci/enable_mkmf_verbose.sh
+        if: runner.os == 'Linux' || runner.os == 'macOS'
 
   test-openssls:
     name: >-
